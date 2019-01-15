@@ -1,49 +1,55 @@
-import React from "react";
-import { inject, observer } from "mobx-react";
+import React from 'react';
+import { inject, observer } from 'mobx-react';
+import { FaSquare } from 'react-icons/fa';
 
-@inject("state")
+@inject(({ state }) => ({
+  updateStopButton: state.updateStopButton,
+  editor: state.editor,
+  updateActiveText: state.updateActiveText,
+  updateRunAreaRenderingFlag: state.updateRunAreaRenderingFlag,
+  updateRunButtonColor: state.updateRunButtonColor,
+  updateIframeElement: state.updateIframeElement,
+  updateHotReload: state.updateHotReload
+}))
 @observer
 export default class StopButton extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      backgroundColor: "#eee",
-      fontColor: "#e38"
+      backgroundColor: '#eee',
+      fontColor: ' #e38'
     };
-    this.handleClick = this.handleClick.bind(this);
-    this.handleMouseEnter = this.handleMouseEnter.bind(this);
-    this.handleMouseLeave = this.handleMouseLeave.bind(this);
   }
   componentDidMount() {
-    this.props.state.updateStopButton(this.refs.stopButton);
+    this.props.updateStopButton(this.refs.stopButton);
   }
-  handleClick() {
-    this.props.state.updateActiveText(this.props.state.editor.getValue());
-    this.props.state.removeRenderingObject("run");
-    this.props.state.updateRunButtonColor({
-      backgroundColor: "#eee",
-      fontColor: "#e38"
+  handleClick = () => {
+    this.props.updateActiveText(this.props.editor.getValue());
+    this.props.updateRunAreaRenderingFlag(false);
+    this.props.updateRunButtonColor({
+      backgroundColor: '#eee',
+      fontColor: ' #e38'
     });
-    this.props.state.updateIframeElement(null);
-    this.props.state.updateHotReload(false);
-  }
-  handleMouseEnter() {
+    this.props.updateIframeElement(null);
+    this.props.updateHotReload(false);
+  };
+  handleMouseEnter = () => {
     this.setState({
-      backgroundColor: "#e38",
-      fontColor: "#eee"
+      backgroundColor: ' #e38',
+      fontColor: '#eee'
     });
-  }
-  handleMouseLeave() {
+  };
+  handleMouseLeave = () => {
     this.setState({
-      backgroundColor: "#eee",
-      fontColor: "#e38"
+      backgroundColor: '#eee',
+      fontColor: ' #e38'
     });
-  }
+  };
   render() {
     return (
       <button
+        touch-action="auto"
         ref="stopButton"
-        id="stop"
         style={{
           backgroundColor: this.state.backgroundColor,
           color: this.state.fontColor
@@ -52,7 +58,7 @@ export default class StopButton extends React.Component {
         onMouseLeave={this.handleMouseLeave}
         onMouseEnter={this.handleMouseEnter}
       >
-        ■
+        <FaSquare />
       </button>
     );
   }

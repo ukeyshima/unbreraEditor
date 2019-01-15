@@ -1,73 +1,94 @@
-import React from "react";
-import { inject, observer } from "mobx-react";
-import ExtensionSelection from "./extensionSelection.jsx";
+import React from 'react';
+import { inject, observer } from 'mobx-react';
+import ExtensionSelection from './extensionSelection';
 
-@inject("state")
+@inject(({ state }) => ({
+  textFile: state.textFile,
+  editor: state.editor,
+  updateActiveUndoStack: state.updateActiveUndoStack,
+  updateActiveRedoStack: state.updateActiveRedoStack,
+  updateActiveText: state.updateActiveText,
+  incrementId: state.incrementId,
+  id: state.id,
+  pushTextFile: state.pushTextFile
+}))
 @observer
 export default class CreateTextFileForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      inputValue: "main",
-      extensionName: "js",
-      createButtonFontColor: "#000"
+      inputValue: 'main',
+      extensionName: 'js',
+      createButtonFontColor: '#000'
     };
-    this.handleClick = this.handleClick.bind(this);
-    this.handleExtensionChange = this.handleExtensionChange.bind(this);
-    this.handleInputChange = this.handleInputChange.bind(this);
-    this.handleMouseEnter = this.handleMouseEnter.bind(this);
-    this.handleMouseLeave = this.handleMouseLeave.bind(this);
   }
-  handleInputChange(e) {
+  handleInputChange = e => {
     this.setState({ inputValue: e.target.value });
-  }
-  handleExtensionChange(extension) {
+  };
+  handleExtensionChange = extension => {
     this.setState({
       extensionName: extension
     });
-  }
-  handleClick() {
-    const text = this.props.state.editor.getValue();
-    this.props.state.updateActiveText(text);
-    this.props.state.incrementId();
-    const id = this.props.state.id;
-    const type = (() => {
-      let result;
-      switch (this.state.extensionName) {
-        case "js":
-          result = "javascript";
-          break;
-        case "css":
-          result = "css";
-          break;
-        case "glsl":
-          result = "glsl";
-          break;
-      }
-      return result;
-    })();
-    this.props.state.pushTextFile({
-      id: id,
-      type: type,
-      fileName: this.state.inputValue + "." + this.state.extensionName,
-      removed: false,
-      text: ""
-    });
-    this.props.state.updateDontExecute(true);
-  }
-  handleMouseEnter() {
+  };
+  handleClick = async () => {
+    if (
+      !this.props.textFile.some(e => {
+        return (
+          e.fileName === this.state.inputValue + '.' + this.state.extensionName
+        );
+      })
+    ) {
+      this.props.incrementId();
+      const id = this.props.id;
+      const type = (() => {
+        let result;
+        switch (this.state.extensionName) {
+          case 'js':
+            result = 'javascript';
+            break;
+          case 'css':
+            result = 'css';
+            break;
+          case 'glsl':
+            result = 'glsl';
+            break;
+        }
+        return result;
+      })();
+
+      const undoManager = this.props.editor.session.$undoManager;
+      const undoStack = undoManager.$undoStack.slice();
+      const redoStack = undoManager.$redoStack.slice();
+      await this.props.updateActiveUndoStack(undoStack);
+      await this.props.updateActiveRedoStack(redoStack);
+
+      this.props.pushTextFile({
+        id: id,
+        type: type,
+        fileName: this.state.inputValue + '.' + this.state.extensionName,
+        removed: false,
+        text: '',
+        undoStack: [],
+        redoStack: [],
+        handWritingFormulaAreaId: 0,
+        handWritingFormulaAreas: []
+      });
+    }
+  };
+  handleMouseEnter = () => {
     this.setState({
-      createButtonFontColor: "#e38"
+      createButtonFontColor: ' #e38'
     });
-  }
-  handleMouseLeave() {
+  };
+  handleMouseLeave = () => {
     this.setState({
-      createButtonFontColor: "#000"
+      createButtonFontColor: '#000'
     });
-  }
+  };
   render() {
     return (
       <div
+        touch-action="auto"
         className="dropDown"
         id="createTextForm"
         style={{

@@ -1,0 +1,10 @@
+precision mediump float;
+uniform float time;
+
+void main(void){    
+    var r=abs(pow(sin(time),3.0));
+    var g=abs(pow(cos(time),5.0));
+    var b=abs(pow(tan(time),7.0));
+    var color = vec3(r,g,b);
+    gl_FragColor=vec4(color,1.0);
+}

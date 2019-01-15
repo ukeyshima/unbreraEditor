@@ -1,27 +1,29 @@
-import React from "react";
-import { inject, observer } from "mobx-react";
+import React from 'react';
+import { inject, observer } from 'mobx-react';
 
-@inject("state")
+@inject(({ state }) => ({
+  hotReload: state.hotReload,
+  updateHotReload: state.updateHotReload,
+  iframeElement: state.iframeElement,
+  stopButton: state.stopButton,
+  runButton: state.runButton,
+  updateRunButtonColor: state.updateRunButtonColor
+}))
 @observer
 export default class HotReloadButton extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      fontColor: "#000"
+      fontColor: '#000',
+      backgroundColor: '#fff'
     };
-    this.handleClick = this.handleClick.bind(this);
-    this.handleMouseEnter = this.handleMouseEnter.bind(this);
-    this.handleMouseLeave = this.handleMouseLeave.bind(this);
   }
-  handleClick() {
-    const run = this.props.state.renderingObject.find(e => {
-      return e.type === "run";
-    });
-    const bool = this.props.state.hotReload;
-    this.props.state.updateHotReload(!bool);
-    const e = document.createEvent("MouseEvents");
+  handleClick = () => {
+    const bool = this.props.hotReload;
+    this.props.updateHotReload(!bool);
+    const e = document.createEvent('MouseEvents');
     e.initMouseEvent(
-      "click",
+      'click',
       true,
       false,
       window,
@@ -37,31 +39,33 @@ export default class HotReloadButton extends React.Component {
       0,
       null
     );
-    if (run) {
-      this.props.state.stopButton.dispatchEvent(e);
+    if (this.props.iframeElement) {
+      this.props.stopButton.dispatchEvent(e);
     } else {
-      this.props.state.runButton.dispatchEvent(e);
-      this.props.state.updateRunButtonColor({
-        backgroundColor: "#e38",
-        fontColor: "#eee"
+      this.props.runButton.dispatchEvent(e);
+      this.props.updateRunButtonColor({
+        backgroundColor: ' #e38',
+        fontColor: '#eee'
       });
     }
-  }
-  handleMouseLeave() {
+  };
+  handleMouseLeave = () => {
     this.setState({
-      fontColor: "#000"
+      fontColor: this.props.hotReload ? '#fff' : '#000'
     });
-  }
-  handleMouseEnter() {
+  };
+  handleMouseEnter = () => {
     this.setState({
-      fontColor: "#e38"
+      fontColor: this.props.hotReload ? '#000' : '#e38'
     });
-  }
+  };
   render() {
     return (
       <button
+        touch-action='auto'
         style={{
-          color: this.state.fontColor
+          color: this.state.fontColor,
+          backgroundColor: this.props.hotReload ? '#e38' : '#fff'
         }}
         onClick={this.handleClick}
         onMouseLeave={this.handleMouseLeave}

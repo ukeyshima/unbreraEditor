@@ -1,70 +1,34 @@
-import React from "react";
-import Editor from "./editor.jsx";
-import SizeChangeBar from "./sizeChangeBar.jsx";
-import RunFrame from "./runFrame.jsx";
-import UndoGUIArea from "./undoGUIArea.jsx";
-import { inject, observer } from "mobx-react";
+import React from 'react';
+import Editor from './editor';
+import RunArea from './runArea';
+import { inject, observer } from 'mobx-react';
 
-@inject("state")
+@inject(({ state }) => ({
+  runAreaRenderingFlag: state.runAreaRenderingFlag,
+  runAreaPosition: state.runAreaPosition,
+  textFile: state.textFile
+}))
 @observer
 export default class RenderingObject extends React.Component {
-  constructor(props) {
-    super(props);
-  }
-
   render() {
-    const renderingObject = this.props.state.renderingObject;
-
     return (
-      <div>
-        {(() => {
-          return renderingObject.map((e, i) => {
-            if (e.type === "editor") {
-              return (
-                <React.Fragment key={i}>
-                  <Editor
-                    num={i}
-                    style={{
-                      width: e.width,
-                      height: "calc(100vh - 110px)",
-                      float: "left"
-                    }}
-                  />
-                </React.Fragment>
-              );
-            } else if (e.type === "run") {
-              return (
-                <React.Fragment key={i}>
-                  <SizeChangeBar num={i} />
-                  <RunFrame
-                    num={i}
-                    style={{
-                      width: e.width,
-                      height: "calc(100vh - 110px)",
-                      float: "left"
-                    }}
-                  />
-                </React.Fragment>
-              );
-            } else if (e.type === "undoGUIArea") {
-              return (
-                <React.Fragment key={i}>
-                  <SizeChangeBar num={i} />
-                  <UndoGUIArea
-                    num={i}
-                    style={{
-                      width: e.width,
-                      height: "calc(100vh - 110px)",
-                      float: "left",
-                      backgroundColor: "#000"
-                    }}
-                  />
-                </React.Fragment>
-              );
-            }
-          });
-        })()}
-      </div>
+      <React.Fragment>
+        <Editor />
+        {this.props.runAreaRenderingFlag && (
+          <RunArea
+            style={{
+              position: 'absolute',
+              left: this.props.runAreaPosition.x,
+              top: this.props.runAreaPosition.y,
+              width: 400,
+              height: 400,
+              borderRadius: 5,
+              boxShadow: '2px 2px 10px grey',
+              zIndex: 26
+            }}
+          />
+        )}
+      </React.Fragment>
     );
   }
 }

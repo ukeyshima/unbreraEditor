@@ -1,35 +1,30 @@
-import React from "react";
-import { inject, observer } from "mobx-react";
+import React from 'react';
+import { inject, observer } from 'mobx-react';
 
-@inject("state")
+@inject(({ state }) => ({
+  editor: state.editor
+}))
 @observer
 export default class LoadButton extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      fontColor: "#000"
+      fontColor: '#000'
     };
-    this.handleClick = this.handleClick.bind(this);
-    this.handleMouseEnter = this.handleMouseEnter.bind(this);
-    this.handleMouseLeave = this.handleMouseLeave.bind(this);
-    this.handleChange = this.handleChange.bind(this);
   }
-  handleChange(e) {
+  handleChange = e => {
     const file = e.target.files;
     const reader = new FileReader();
     reader.readAsText(file[0]);
-    reader.onload = () => {
-      this.props.state.editor.setValue(reader.result);
-    };
     delete this.inputFile;
-  }
-  handleClick() {
-    this.inputFile = document.createElement("input");
-    this.inputFile.type = "file";
-    this.inputFile.addEventListener("change", this.handleChange);
-    const e = document.createEvent("MouseEvents");
+  };
+  handleClick = () => {
+    this.inputFile = document.createElement('input');
+    this.inputFile.type = 'file';
+    this.inputFile.addEventListener('change', this.handleChange);
+    const e = document.createEvent('MouseEvents');
     e.initMouseEvent(
-      "click",
+      'click',
       true,
       false,
       window,
@@ -46,21 +41,22 @@ export default class LoadButton extends React.Component {
       null
     );
     this.inputFile.dispatchEvent(e);
-  }
-  handleMouseLeave() {
+  };
+  handleMouseLeave = () => {
     this.setState({
-      fontColor: "#000"
+      fontColor: '#000'
     });
-  }
-  handleMouseEnter() {
+  };
+  handleMouseEnter = () => {
     this.setState({
-      fontColor: "#e38"
+      fontColor: ' #e38'
     });
-  }
+  };
   render() {
     return (
       <React.Fragment>
         <button
+          touch-action="auto"
           style={{
             color: this.state.fontColor
           }}

@@ -1,27 +1,25 @@
-import React from "react";
-import HotReloadButton from "./hotReloadButton.jsx";
-import CreateUndoGUIArea from "./createUndoGUIAreaButton.jsx";
-import { inject, observer } from "mobx-react";
+import React from 'react';
+import HotReloadButton from './hotReloadButton';
+import DefaultButton from './defaultButton';
+import { inject, observer } from 'mobx-react';
 
-@inject("state")
+@inject('state')
 @observer
 export default class ModeSelect extends React.Component {
-  constructor(props) {
-    super(props);
-  }
   render() {
     return (
       <div
+        touch-action="auto"
         className="dropDown"
         id="modeSelect"
         style={{
-          position: "absolute",
+          position: 'absolute',
           left: this.props.style.x,
           top: this.props.style.y
         }}
       >
         <HotReloadButton />
-        <CreateUndoGUIArea />
+        <DefaultButton />
       </div>
     );
   }

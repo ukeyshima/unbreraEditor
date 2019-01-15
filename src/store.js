@@ -1,43 +1,71 @@
-import { observable, computed, action } from "mobx";
+import { observable, computed, action } from 'mobx';
 
 class State {
-  @observable dontExecute=false;
+  @observable
+  tabChangeEvent = false;
   @action.bound
-  updateDontExecute(bool){
-    this.dontExecute=bool;
+  updateTabChangeEvent(bool) {
+    this.tabChangeEvent = bool;
   }
-  @observable executeHTML=null;
-  @action.bound updateExecuteHTML(func){
-    this.executeHTML=func;
-  }
-  @observable runButton=null;
+  @observable
+  editorValue = '';
   @action.bound
-  updateRunButton(element){
-    this.runButton=element;
+  updateEditorValue(text) {
+    this.editorValue = text;
   }
-  @observable stopButton=null;
+  @observable
+  saveEvent = null;
   @action.bound
-  updateStopButton(element){
-    this.stopButton=element;
+  updateSaveEvent(func) {
+    this.saveEvent = func;
   }
-  @observable hotReload = false;
+  @observable
+  executeHTML = null;
+  @action.bound
+  updateExecuteHTML(func) {
+    this.executeHTML = func;
+  }
+  @observable
+  runButton = null;
+  @action.bound
+  updateRunButton(element) {
+    this.runButton = element;
+  }
+  @observable
+  stopButton = null;
+  @action.bound
+  updateStopButton(element) {
+    this.stopButton = element;
+  }
+  @observable
+  hotReload = false;
   @action.bound
   updateHotReload(bool) {
     this.hotReload = bool;
   }
-  @observable editor;
+  @observable
+  editor = null;
   @action.bound
   updateEditor(editor) {
     this.editor = editor;
   }
-  @observable iframeElement = null;
+  @observable
+  iframeElement = null;
   @action.bound
-  updateIframeElement(element) {
-    this.iframeElement = element;
+  async updateIframeElement(element) {
+    this.iframeElement = await element;
   }
   @observable
   textFile = [
-    { id: 0, type: "html", fileName: "index.html", removed: false, text: "" }
+    {
+      id: 0,
+      type: 'html',
+      fileName: 'index.html',
+      removed: false,
+      text: '',
+      undoStack: null,
+      redoStack: null
+    }
   ];
   @action.bound
   pushTextFile(file) {
@@ -45,63 +73,80 @@ class State {
       !this.textFile.some(e => {
         return e.fileName === file.fileName;
       })
-    ){
-      this.editor.setValue(file.text);
+    ) {
       this.textFile.push(file);
-      this.changeActiveTextFile(this.textFile[this.textFile.length - 1]);
-      this.editor.session.$undoManager.init();
+      this.changeActiveTextFile(this.textFile.length - 1);
+      setTimeout(() => {
+        this.editor.session.$undoManager.reset();
+      }, 10);
     }
   }
   @action.bound
-  removeTextFile(file) {
+  async removeTextFile(file) {
     const nextTextFile = this.textFile.filter(e => e !== file);
-    this.textFile = nextTextFile;
+    this.textFile = await nextTextFile;
   }
-  @observable activeTextFile = this.textFile[0];
   @action.bound
-  changeActiveTextFile(file) {
-    this.activeTextFile = file;
+  async clearTextFile() {
+    this.textFile = await [];
+  }
+  @observable
+  activeTextFile = this.textFile[0];
+  @action.bound
+  async changeActiveTextFile(index) {
+    this.activeTextFile = await this.textFile[index];
+  }
+  @computed
+  get activeTextFileId() {
+    return this.textFile.findIndex(e => {
+      return e.fileName === this.activeTextFile.fileName;
+    });
   }
   @action.bound
   updateActiveText(text) {
     this.activeTextFile.text = text;
   }
-  @observable id = 0;
+  @action.bound
+  async updateActiveUndoStack(undoStack) {
+    this.activeTextFile.undoStack = await undoStack;
+  }
+  @action.bound
+  async updateActiveRedoStack(redoStack) {
+    this.activeTextFile.redoStack = await redoStack;
+  }
+  @observable
+  id = 0;
   @action.bound
   incrementId() {
     this.id++;
   }
-  @observable renderingObject = [{ type: "editor", width: window.innerWidth }];
+  @observable
+  runAreaRenderingFlag = false;
   @action.bound
-  sizeChange(num, width) {
-    this.renderingObject[num].width = width;
+  updateRunAreaRenderingFlag(bool) {
+    this.runAreaRenderingFlag = bool;
   }
+  @observable
+  runAreaPosition = { x: window.innerWidth - 600, y: 100 };
   @action.bound
-  scrolling(num, bool) {
-    this.renderingObject[num].scrolling = bool;
-  }
-  @action.bound
-  pushRenderingObject(obj) {
-    this.renderingObject.push(obj);
-  }
-  removeRenderingObject(type) {
-    const target = this.renderingObject.find(e => e.type === type);
-    const targetNum = this.renderingObject.indexOf(target);
-    if (targetNum !== -1) {
-      this.renderingObject.splice(targetNum, 1);
-      const targetWidth = target.width;
-      this.renderingObject[targetNum - 1].width +=
-        type === "run" ? targetWidth + 3 + 4 : targetWidth + 3;
-    }
+  updateRunAreaPosition(x, y) {
+    this.runAreaPosition.x = x;
+    this.runAreaPosition.y = y;
   }
   @observable
   runButtonColor = {
-    backgroundColor: "#eee",
-    fontColor: "#e38"
+    backgroundColor: '#eee',
+    fontColor: ' #e38'
   };
   @action.bound
   updateRunButtonColor(obj) {
     this.runButtonColor = obj;
+  }
+  @observable
+  gl=null;
+  @action.bound
+  updateGlContext(gl){
+    this.gl=gl;
   }
 }
 
