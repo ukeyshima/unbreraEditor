@@ -1,16 +1,16 @@
-import React from "react";
-import brace from "brace";
-import AceEditor from "react-ace";
+import React from 'react';
+import brace from 'brace';
+import AceEditor from 'react-ace';
 
-import "brace/mode/html";
-import "brace/mode/javascript";
-import "brace/mode/glsl";
-import "brace/mode/css";
-import "brace/theme/dawn";
+import 'brace/mode/html';
+import 'brace/mode/javascript';
+import 'brace/mode/glsl';
+import 'brace/mode/css';
+import 'brace/theme/dawn';
 
-import { inject, observer } from "mobx-react";
+import { inject, observer } from 'mobx-react';
 
-@inject("state")
+@inject('state')
 @observer
 export default class Editor extends React.Component {
   constructor(props) {
@@ -24,7 +24,7 @@ export default class Editor extends React.Component {
     let diff = -3;
     this.props.state.renderingObject.forEach(e => {
       diff += 3;
-      if (e.type == "run") {
+      if (e.type == 'run') {
         diff += 4;
       }
     });
@@ -188,7 +188,7 @@ export default class Editor extends React.Component {
       const branchPointIndex = currentId.lastIndexOf(currentBranchId) - 1;
       const branchPoint = branchPointStack[branchPointIndex];
       if (branchPoint) {
-        console.log("unbra!");
+        console.log('unbra!');
         const nextBranchId = currentBranchId - 1;
         const branchPointNum = undoStack.lastIndexOf(branchPoint);
         const j = undoStack.length - branchPointNum - 1;
@@ -237,7 +237,7 @@ export default class Editor extends React.Component {
           return e.nextStack.length > currentId.concat().reverse()[i] + 1;
         });
       if (branchPoint) {
-        console.log("rebra!");
+        console.log('rebra!');
         const branchPointNum = undoStack.lastIndexOf(branchPoint);
         const j = undoStack.length - branchPointNum - 1;
         for (let i = 0; i < j; i++) {
@@ -273,6 +273,7 @@ export default class Editor extends React.Component {
       const self = this;
       const undoStack = this.$undoStack[activeId];
       const branchPoint = (function searchBranchPoint(target) {
+        console.log(target);
         nextStack.unshift(target);
         if (!target.frontStack) return target;
         if (undoStack.some(e => e === target.frontStack)) {
@@ -360,8 +361,8 @@ export default class Editor extends React.Component {
     this.undoManager.reset();
     this.undoManager.init();
     this.keyboardHandler.addCommand({
-      name: "undo-event",
-      bindKey: { win: "Ctrl+z", mac: "Command+z" },
+      name: 'undo-event',
+      bindKey: { win: 'Ctrl+z', mac: 'Command+z' },
       exec: () => {
         try {
           this.undoManager.undo();
@@ -372,8 +373,8 @@ export default class Editor extends React.Component {
       readOnly: true
     });
     this.keyboardHandler.addCommand({
-      name: "redo-event",
-      bindKey: { win: "Ctrl+Shift+z", mac: "Command+Shift+z" },
+      name: 'redo-event',
+      bindKey: { win: 'Ctrl+Shift+z', mac: 'Command+Shift+z' },
       exec: () => {
         try {
           this.undoManager.redo();
@@ -384,8 +385,8 @@ export default class Editor extends React.Component {
       readOnly: true
     });
     this.keyboardHandler.addCommand({
-      name: "unbra-event",
-      bindKey: { win: "Alt+z", mac: "Option+z" },
+      name: 'unbra-event',
+      bindKey: { win: 'Alt+z', mac: 'Option+z' },
       exec: () => {
         try {
           this.undoManager.unbra();
@@ -396,8 +397,8 @@ export default class Editor extends React.Component {
       readOnly: true
     });
     this.keyboardHandler.addCommand({
-      name: "rebra-event",
-      bindKey: { win: "Alt+Shift+z", mac: "Option+Shift+z" },
+      name: 'rebra-event',
+      bindKey: { win: 'Alt+Shift+z', mac: 'Option+Shift+z' },
       exec: () => {
         try {
           this.undoManager.rebra();
@@ -407,10 +408,10 @@ export default class Editor extends React.Component {
       },
       readOnly: true
     });
-    window.addEventListener("resize", this.handleResize);
+    window.addEventListener('resize', this.handleResize);
   }
   componentWillUnmount() {
-    window.removeEventListener("resize", this.handleResize);
+    window.removeEventListener('resize', this.handleResize);
   }
   handleMouseMove(e) {
     if (this.props.state.renderingObject.length > this.props.num + 1) {
