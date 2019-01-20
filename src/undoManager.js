@@ -1,8 +1,11 @@
+import _ from 'lodash';
+
 export default class UndoManager {
   constructor(editor) {
     this.aceUndoManager = editor.session.$undoManager;
     this.aceUndoManager.reset = this.reset;
     this.aceUndoManager.undoStackObj = this.undoStackObj;
+    this.aceUndoManager.isEqualUndoStackObj = this.isEqualUndoStackObj;
     this.aceUndoManager.execute = this.execute;
     this.aceUndoManager.undo = this.undo;
     this.aceUndoManager.redo = this.redo;
@@ -23,9 +26,8 @@ export default class UndoManager {
     this.branchId = 0;
     this.$undoStack = [this.undoStackObj([], this.branchId, null, [], 1)];
     this.$redoStack = [];
-    this.$undoStack[0].id = 0;
-    this.id = 0;
   };
+
   undoStackObj = function(delta, branchId, frontStack, nextStack, stackWidth) {
     return {
       delta: delta,
@@ -35,18 +37,26 @@ export default class UndoManager {
       stackWidth: stackWidth
     };
   };
+  isEqualUndoStackObj = function(stack1, stack2) {
+    return (
+      _.isEqual(stack1.delta, stack2.delta) &&
+      stack1.branchId == stack2.branchId &&
+      stack1.stackWidth == stack2.stackWidth
+    );
+  };
   execute = function(options) {
     this.$redoStack = [];
     let lastUndoStack = this.lastUndoStack();
     if (lastUndoStack.nextStack.length > 0) {
-      (function repaintBranchId(stack) {
+      const repaintBranchId = stack => {
         stack.branchId = 0;
         if (!(stack.nextStack.length > 1 || stack.nextStack.length == 0)) {
           repaintBranchId(stack.nextStack[0]);
         } else {
           return;
         }
-      })(lastUndoStack.nextStack[0]);
+      };
+      repaintBranchId(lastUndoStack.nextStack[0]);
       this.branchId = lastUndoStack.nextStack.length;
     } else {
       this.branchId = lastUndoStack.branchId;
@@ -55,26 +65,39 @@ export default class UndoManager {
     this.$doc = options.args[1];
     const action = deltaSets[0].deltas[0].action;
     const prevAction =
-      this.$undoStack[this.$undoStack.length - 1].delta[0] &&
-      this.$undoStack[this.$undoStack.length - 1].delta[0].deltas[0].action;
-    if (options.merge && this.hasUndo() && action == prevAction) {
+      lastUndoStack.delta[0] && lastUndoStack.delta[0].deltas[0].action;      
+    if (options.merge && this.hasUndoStack() && action === prevAction) {
       this.dirtyCounter--;
-      deltaSets = this.$undoStack.pop().delta.concat(deltaSets);
-      lastUndoStack = this.$undoStack[this.$undoStack.length - 1];
+      const popStack = this.$undoStack.pop();
+      deltaSets = popStack.delta.concat(deltaSets);
+      lastUndoStack = this.lastUndoStack();
       lastUndoStack.nextStack.pop();
+      const newUndoStack = this.undoStackObj(
+        deltaSets,
+        this.branchId,
+        lastUndoStack,
+        [],
+        1
+      );
+      this.$undoStack.push(newUndoStack);
+      lastUndoStack.nextStack.push(newUndoStack);
+    } else {
+      const newUndoStack = this.undoStackObj(
+        deltaSets,
+        this.branchId,
+        lastUndoStack,
+        [],
+        1
+      );
+      this.$undoStack.push(newUndoStack);
+      lastUndoStack.nextStack.push(newUndoStack);
+      if (lastUndoStack.nextStack.length > 1)
+        this.updateStackWidth(lastUndoStack);
     }
     if (this.dirtyCounter < 0) {
       this.dirtyCounter = NaN;
     }
-    this.$undoStack.push(
-      this.undoStackObj(deltaSets, this.branchId, lastUndoStack, [], 1)
-    );
-    this.dirtyCounter++;
-    lastUndoStack.nextStack.push(this.lastUndoStack());
-    if (lastUndoStack.nextStack.length > 1)
-      this.updateStackWidth(lastUndoStack);
-    this.id++;
-    this.lastUndoStack().id = this.i$d;
+    this.dirtyCounter++;    
   };
   undo = function(dontSelect) {
     if (this.hasUndoStack()) {
@@ -126,7 +149,7 @@ export default class UndoManager {
     }
   };
   unbra = function() {
-    const lastUndoStack = Object.assign({}, this.lastUndoStack());
+    const lastUndoStack = _.cloneDeep(this.lastUndoStack());
     const undoStack = this.$undoStack;
     const branchPointStack = undoStack
       .concat()
@@ -142,7 +165,7 @@ export default class UndoManager {
     if (branchPoint) {
       console.log('unbra!');
       const nextBranchId = currentBranchId - 1;
-      const branchPointNum = undoStack.lastIndexOf(branchPoint);
+      const branchPointNum = _.lastIndexOf(undoStack, branchPoint);
       const j = undoStack.length - branchPointNum - 1;
       for (let i = 0; i < j; i++) {
         this.undo();
@@ -172,7 +195,7 @@ export default class UndoManager {
     }
   };
   rebra = function() {
-    const lastUndoStack = Object.assign({}, this.lastUndoStack());
+    const lastUndoStack = _.cloneDeep(this.lastUndoStack());
     const undoStack = this.$undoStack;
     const branchPointStack = undoStack
       .concat()
@@ -189,7 +212,7 @@ export default class UndoManager {
       });
     if (branchPoint) {
       console.log('rebra!');
-      const branchPointNum = undoStack.lastIndexOf(branchPoint);
+      const branchPointNum = _.lastIndexOf(undoStack, branchPoint);
       const j = undoStack.length - branchPointNum - 1;
       for (let i = 0; i < j; i++) {
         this.undo();
@@ -220,36 +243,61 @@ export default class UndoManager {
   };
   recomposeUndoStack = function(target) {
     const nextStack = [];
-    const self = this;
     const undoStack = this.$undoStack;
-    const branchPoint = (function searchBranchPoint(target) {
+    const searchBranchPoint = target => {
       nextStack.unshift(target);
       if (!target.frontStack) return target;
-      if (undoStack.some(e => e === target.frontStack)) {
+      if (undoStack.some(e => this.isEqualUndoStackObj(e, target.frontStack))) {
         return target.frontStack;
       } else {
         return searchBranchPoint(target.frontStack);
       }
-    })(target);
-    const branchPointNum = undoStack.lastIndexOf(branchPoint);
+    };
+    const branchPoint = searchBranchPoint(target);
+    let branchPointNum;
+    undoStack
+      .concat()
+      .reverse()
+      .forEach((e, i) => {
+        if (this.isEqualUndoStackObj(e, branchPoint)) {
+          branchPointNum = undoStack.length - i - 1;
+        }
+      });
+
     const j = undoStack.length - branchPointNum - 1;
     for (let i = 0; i < j; i++) {
       this.undo();
     }
-    (function stackUndoStack(stack, i) {
-      undoStack.push(stack);
-      if (stack === target) {
+    const stackUndoStack = stack => {
+      if (!stack) return;
+      const deltaSets = stack.delta;
+      if (deltaSets) {
+        this.$doc.redoChanges(this.$deserializeDeltas(deltaSets), null);
+        undoStack.push(
+          this.undoStackObj(
+            deltaSets,
+            stack.branchId,
+            stack.frontStack,
+            stack.nextStack,
+            stack.stackWidth
+          )
+        );
+        this.dirtyCounter++;
+      }
+      if (this.isEqualUndoStackObj(stack, target)) {
         return;
       } else {
-        stackUndoStack(nextStack[i + 1], i + 1);
+        stackUndoStack(stack.nextStack[0]);
       }
-    })(nextStack[0], 0);
+    };
+    stackUndoStack(nextStack[0], 0);
     this.$redoStack = [];
-    (function stackRedoStack(stack) {
+    const stackRedoStack = stack => {
       if (stack.nextStack.length === 0) return;
-      self.$redoStack.unshift(stack.nextStack[0]);
+      this.$redoStack.unshift(stack.nextStack[0]);
       stackRedoStack(stack.nextStack[0]);
-    })(this.lastUndoStack());
+    };
+    stackRedoStack(this.lastUndoStack());
   };
   hasUndoStack = function() {
     return this.$undoStack.length > 1;
@@ -264,12 +312,30 @@ export default class UndoManager {
     return stack.nextStack.length > 1;
   };
   updateStackWidth = function(stack) {
-    stack.stackWidth++;
     const parent = stack.frontStack;
-    if (parent) this.updateStackWidth(parent);
+    let currentStackIndex;
+    this.$undoStack.forEach((e, i) => {
+      if (this.isEqualUndoStackObj(e, stack)) {
+        currentStackIndex = i;
+      }
+    });
+    let parentNextStackIndex;
+    if (parent) {
+      parent.nextStack.forEach((e, i) => {
+        if (this.isEqualUndoStackObj(e, stack)) {
+          parentNextStackIndex = i;
+        }
+      });
+    }
+    stack.stackWidth++;
+    if (parent) {
+      this.$undoStack[currentStackIndex] = stack;
+      parent.nextStack[parentNextStackIndex] = stack;
+      this.updateStackWidth(parent);
+    }
   };
   getNextBranchPoint = function(stack) {
-    if (!(stack.nextStack.length > 1 || stack.nextStack.length == 0)) {
+    if (!(stack.nextStack.length > 1 || stack.nextStack.length === 0)) {
       return this.getNextBranchPoint(stack.nextStack[0]);
     } else {
       return stack;

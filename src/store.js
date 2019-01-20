@@ -1,18 +1,19 @@
-import { observable, computed, action } from 'mobx';
+import _ from 'lodash';
+import {
+  observable,
+  computed,
+  action,
+  isObservable,
+  extendObservable  
+} from 'mobx';
 
-class State {
+export default class State {
   @observable
   tabChangeEvent = false;
   @action.bound
   updateTabChangeEvent(bool) {
     this.tabChangeEvent = bool;
-  }
-  @observable
-  editorValue = '';
-  @action.bound
-  updateEditorValue(text) {
-    this.editorValue = text;
-  }
+  }  
   @observable
   saveEvent = null;
   @action.bound
@@ -76,14 +77,11 @@ class State {
     ) {
       this.textFile.push(file);
       this.changeActiveTextFile(this.textFile.length - 1);
-      setTimeout(() => {
-        this.editor.session.$undoManager.reset();
-      }, 10);
     }
   }
   @action.bound
   async removeTextFile(file) {
-    const nextTextFile = this.textFile.filter(e => e !== file);
+    const nextTextFile = this.textFile.filter(e => !_.isEqual(e, file));
     this.textFile = await nextTextFile;
   }
   @action.bound
@@ -108,12 +106,30 @@ class State {
   }
   @action.bound
   async updateActiveUndoStack(undoStack) {
-    this.activeTextFile.undoStack = await undoStack;
+    this.activeTextFile.undoStack = await this.convertInPlace(undoStack);
   }
   @action.bound
   async updateActiveRedoStack(redoStack) {
-    this.activeTextFile.redoStack = await redoStack;
+    this.activeTextFile.redoStack = await this.convertInPlace(redoStack);
   }
+  @observable
+  convertInPlace = obj => {
+    if (!obj || isObservable(obj)) return obj;
+    if (Array.isArray(obj))
+      return observable.array(obj.map(this.convertInPlace));
+    if (typeof obj === 'object') {
+      extendObservable(obj, {});
+      const obj1 = obj;
+      obj = observable({});
+      Object.keys(obj1).forEach(key => {
+        extendObservable(obj, {
+          [key]: this.convertInPlace(obj1[key])
+        });
+      });
+      return obj;
+    }
+    return obj;
+  };
   @observable
   id = 0;
   @action.bound
@@ -134,6 +150,19 @@ class State {
     this.runAreaPosition.y = y;
   }
   @observable
+  unbreraGUIAreaRenderingFlag = false;
+  @action.bound
+  updateUnbreraGUIAreaRenderingFlag(bool) {
+    this.unbreraGUIAreaRenderingFlag = bool;
+  }
+  @observable
+  unbreraGUIAreaPosition = { x: window.innerWidth - 600, y: 500 };
+  @action.bound
+  updateUnbreraGUIAreaPosition(x, y) {
+    this.unbreraGUIAreaPosition.x = x;
+    this.unbreraGUIAreaPosition.y = y;
+  }
+  @observable
   runButtonColor = {
     backgroundColor: '#eee',
     fontColor: ' #e38'
@@ -143,11 +172,24 @@ class State {
     this.runButtonColor = obj;
   }
   @observable
-  gl=null;
+  undoManager = null;
   @action.bound
-  updateGlContext(gl){
-    this.gl=gl;
+  updateUndoManager(undoManager) {
+    this.undoManager = undoManager;
   }
+  @observable
+  visualizeTreeUndoFunction = null;
+  @action.bound
+  updateVisualizeTreeUndoFunction(func) {
+    this.visualizeTreeUndoFunction = func;
+  }
+  @observable
+  imgSize = 50;
+  @observable
+  currentStackBackgroundSize = 60;
+  @observable
+  unbreraGUIAreaWidth = 500;
+  @observable
+  unbreraGUIAreaHeight = 250;
+  @observable headerHeight = 20;
 }
-
-export default State;

@@ -1,6 +1,6 @@
 import React from 'react';
 import HotReloadButton from './hotReloadButton';
-import DefaultButton from './defaultButton';
+import UnbreraGUIButton from './unbreraGUIButton';
 import { inject, observer } from 'mobx-react';
 
 @inject('state')
@@ -9,9 +9,9 @@ export default class ModeSelect extends React.Component {
   render() {
     return (
       <div
-        touch-action="auto"
-        className="dropDown"
-        id="modeSelect"
+        touch-action='auto'
+        className='dropDown'
+        id='modeSelect'
         style={{
           position: 'absolute',
           left: this.props.style.x,
@@ -19,7 +19,7 @@ export default class ModeSelect extends React.Component {
         }}
       >
         <HotReloadButton />
-        <DefaultButton />
+        <UnbreraGUIButton />
       </div>
     );
   }

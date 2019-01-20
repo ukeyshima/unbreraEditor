@@ -1,6 +1,7 @@
 import React from 'react';
 import { inject, observer } from 'mobx-react';
 import ExtensionSelection from './extensionSelection';
+import _ from 'lodash';
 
 @inject(({ state }) => ({
   textFile: state.textFile,
@@ -10,7 +11,9 @@ import ExtensionSelection from './extensionSelection';
   updateActiveText: state.updateActiveText,
   incrementId: state.incrementId,
   id: state.id,
-  pushTextFile: state.pushTextFile
+  pushTextFile: state.pushTextFile,
+  undoManager: state.undoManager,
+  visualizeTreeUndoFunction: state.visualizeTreeUndoFunction
 }))
 @observer
 export default class CreateTextFileForm extends React.Component {
@@ -55,24 +58,28 @@ export default class CreateTextFileForm extends React.Component {
         }
         return result;
       })();
-
-      const undoManager = this.props.editor.session.$undoManager;
-      const undoStack = undoManager.$undoStack.slice();
-      const redoStack = undoManager.$redoStack.slice();
+      const undoManager = this.props.undoManager;
+      const undoStack = _.cloneDeep(undoManager.$undoStack);
+      const redoStack = _.cloneDeep(undoManager.$redoStack);      
       await this.props.updateActiveUndoStack(undoStack);
       await this.props.updateActiveRedoStack(redoStack);
-
-      this.props.pushTextFile({
-        id: id,
-        type: type,
-        fileName: this.state.inputValue + '.' + this.state.extensionName,
-        removed: false,
-        text: '',
-        undoStack: [],
-        redoStack: [],
-        handWritingFormulaAreaId: 0,
-        handWritingFormulaAreas: []
-      });
+      setTimeout(() => {
+        this.props.pushTextFile({
+          id: id,
+          type: type,
+          fileName: this.state.inputValue + '.' + this.state.extensionName,
+          removed: false,
+          text: '',
+          undoStack: [],
+          redoStack: []
+        });
+        setTimeout(() => {
+          this.props.undoManager.reset();
+          setTimeout(() => {
+            this.props.visualizeTreeUndoFunction();
+          }, 10);
+        }, 10);
+      }, 10);
     }
   };
   handleMouseEnter = () => {
@@ -88,23 +95,23 @@ export default class CreateTextFileForm extends React.Component {
   render() {
     return (
       <div
-        touch-action="auto"
-        className="dropDown"
-        id="createTextForm"
+        touch-action='auto'
+        className='dropDown'
+        id='createTextForm'
         style={{
           top: this.props.y,
           left: this.props.x
         }}
       >
         <input
-          type="text"
-          id="fileName"
+          type='text'
+          id='fileName'
           value={this.state.inputValue}
           onChange={this.handleInputChange}
         />
         <ExtensionSelection extensionchange={this.handleExtensionChange} />
         <button
-          id="createButton"
+          id='createButton'
           style={{
             color: this.state.createButtonFontColor
           }}

@@ -6,9 +6,7 @@ import { inject, observer } from 'mobx-react';
   iframeElement: state.iframeElement,
   updateIframeElement: state.updateIframeElement,
   updateExecuteHTML: state.updateExecuteHTML,
-  textFile: state.textFile,
-  gl: state.gl,
-  updateGlContext: state.updateGlContext
+  textFile: state.textFile    
 }))
 @observer
 export default class RunArea extends React.Component {

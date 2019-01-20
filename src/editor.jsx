@@ -24,7 +24,9 @@ import UndoManager from './undoManager';
   activeTextFileId: state.activeTextFileId,
   updateActiveUndoStack: state.updateActiveUndoStack,
   updateActiveRedoStack: state.updateActiveRedoStack,
-  saveEvent: state.saveEvent
+  saveEvent: state.saveEvent,
+  updateUndoManager: state.updateUndoManager,
+  visualizeTreeUndoFunction: state.visualizeTreeUndoFunction
 }))
 @observer
 export default class Editor extends React.Component {
@@ -47,14 +49,15 @@ export default class Editor extends React.Component {
     this.editor = editor;
     editor.resize();
     this.props.updateEditor(editor);
-    editor.session.$undoManager = new UndoManager(editor).aceUndoManager;
+    const undoManager = new UndoManager(editor).aceUndoManager;
+    editor.session.$undoManager = undoManager;
+    this.props.updateUndoManager(editor.session.$undoManager);
     this.keyboardHandler = editor.getKeyboardHandler();
     this.keyboardHandler.addCommand({
       name: 'save-event',
       bindKey: { win: 'Ctrl+s', mac: 'Command+s' },
       exec: () => {
         try {
-          console.log('saveEvent');
           this.props.saveEvent();
         } catch (e) {
           console.log(e);
@@ -67,8 +70,8 @@ export default class Editor extends React.Component {
       bindKey: { win: 'Ctrl+z', mac: 'Command+z' },
       exec: () => {
         try {
-          console.log('undoEvent');
-          editor.session.$undoManager.undo();
+          undoManager.undo();
+          this.props.visualizeTreeUndoFunction();
         } catch (e) {
           console.log(e);
         }
@@ -80,8 +83,8 @@ export default class Editor extends React.Component {
       bindKey: { win: 'Ctrl+Shift+z', mac: 'Command+Shift+z' },
       exec: () => {
         try {
-          console.log('redoEvent');
-          editor.session.$undoManager.redo();
+          undoManager.redo();
+          this.props.visualizeTreeUndoFunction();
         } catch (e) {
           console.log(e);
         }
@@ -93,8 +96,8 @@ export default class Editor extends React.Component {
       bindKey: { win: 'Alt+z', mac: 'Option+z' },
       exec: () => {
         try {
-          console.log('unbraEvent');
-          editor.session.$undoManager.unbra();
+          undoManager.unbra();
+          this.props.visualizeTreeUndoFunction();
         } catch (e) {
           console.log(e);
         }
@@ -106,8 +109,8 @@ export default class Editor extends React.Component {
       bindKey: { win: 'Alt+Shift+z', mac: 'Option+Shift+z' },
       exec: () => {
         try {
-          console.log('rebraEvent');
-          editor.session.$undoManager.rebra();
+          undoManager.rebra();
+          this.props.visualizeTreeUndoFunction();
         } catch (e) {
           console.log(e);
         }
@@ -120,7 +123,18 @@ export default class Editor extends React.Component {
     window.removeEventListener('resize', this.handleResize);
   }
   handleChange = e => {
-    this.props.updateActiveText(e);
+    try {
+      this.props.updateActiveText(e);
+      setTimeout(() => {
+        try{
+          this.props.visualizeTreeUndoFunction();
+        }catch(e){
+          console.log(e)
+        }
+      }, 10);
+    } catch (e) {
+      console.log(e);
+    }
     if (this.props.hotReload) {
       this.props.updateActiveText(e);
       this.props.executeHTML(this.props.textFile);

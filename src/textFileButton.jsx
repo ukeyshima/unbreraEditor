@@ -1,6 +1,7 @@
 import React from 'react';
 import { inject, observer } from 'mobx-react';
-import { toJS } from 'mobx';
+import { toJS, isObservable } from 'mobx';
+import _ from 'lodash';
 
 @inject(({ state }) => ({
   hotReload: state.hotReload,
@@ -17,7 +18,9 @@ import { toJS } from 'mobx';
   removeTextFile: state.removeTextFile,
   activeTextFileUndoStack: state.activeTextFile.undoStack,
   activeTextFileRedoStack: state.activeTextFile.redoStack,
-  activeTextFileId: state.activeTextFileId
+  activeTextFileId: state.activeTextFileId,
+  undoManager: state.undoManager,
+  visualizeTreeUndoFunction: state.visualizeTreeUndoFunction
 }))
 @observer
 export default class TextFileButton extends React.Component {
@@ -50,6 +53,15 @@ export default class TextFileButton extends React.Component {
       deleteMouseEnter: false
     });
   };
+  convertInPlace = obj => {
+    if (Array.isArray(obj)) return obj.map(this.convertInPlace);
+    if (!obj || !isObservable(obj)) return toJS(obj);
+    if (typeof obj === 'object')
+      return _.mapValues(toJS(obj), value => {
+        return this.convertInPlace(value);
+      });
+    return toJS(obj);
+  };
   handleClick = async (fileName, e) => {
     if (
       e.target.id !== 'delete' &&
@@ -57,9 +69,9 @@ export default class TextFileButton extends React.Component {
     ) {
       const hotReloadFlag = this.props.hotReload;
       this.props.updateHotReload(false);
-      const undoManager = this.props.editor.session.$undoManager;
-      const undoStack = undoManager.$undoStack.slice();
-      const redoStack = undoManager.$redoStack.slice();
+      const undoManager = this.props.undoManager;
+      const undoStack = _.cloneDeep(undoManager.$undoStack);
+      const redoStack = _.cloneDeep(undoManager.$redoStack);
       await this.props.updateActiveUndoStack(undoStack);
       await this.props.updateActiveRedoStack(redoStack);
       const textFile = this.props.textFile;
@@ -68,17 +80,26 @@ export default class TextFileButton extends React.Component {
       });
       await this.props.changeActiveTextFile(activeFileIndex);
       setTimeout(() => {
-        undoManager.reset();
-        const activeUndoStack = this.props.activeTextFileUndoStack;
-        const activeRedoStack = this.props.activeTextFileRedoStack;
-        undoManager.$undoStack = activeUndoStack;
-        undoManager.$redoStack = activeRedoStack;
-        if (hotReloadFlag) {
-          this.props.updateHotReload(hotReloadFlag);
-          const textFIle = this.props.textFile;
-          this.props.executeHTML(textFIle);
-        }
-      }, 10);
+        this.props.undoManager.reset();
+        setTimeout(() => {
+          const activeUndoStack = this.props.activeTextFileUndoStack;
+          const activeRedoStack = this.props.activeTextFileRedoStack;
+          this.props.undoManager.$undoStack = this.convertInPlace(
+            activeUndoStack
+          );
+          this.props.undoManager.$redoStack = this.convertInPlace(
+            activeRedoStack
+          );          
+          setTimeout(() => {
+            this.props.visualizeTreeUndoFunction();
+          }, 10);
+          if (hotReloadFlag) {
+            this.props.updateHotReload(hotReloadFlag);
+            const textFIle = this.props.textFile;
+            this.props.executeHTML(textFIle);
+          }
+        }, 10);
+      }, 30);
     }
   };
   handleDeleteClick = async fileName => {
@@ -95,24 +116,32 @@ export default class TextFileButton extends React.Component {
     });
     await this.props.removeTextFile(targetFile);
     setTimeout(() => {
-      const undoManager = this.props.editor.session.$undoManager;
-      undoManager.reset();
-      const activeUndoStack = toJS(this.props.activeTextFileUndoStack);
-      const activeRedoStack = toJS(this.props.activeTextFileRedoStack);
-      undoManager.$undoStack = activeUndoStack;
-      undoManager.$redoStack = activeRedoStack;
-      if (hotReloadFlag) {
-        this.props.updateHotReload(hotReloadFlag);
-        const textFIle = this.props.textFile;
-        this.props.executeHTML(textFIle);
-      }
+      this.props.undoManager.reset();
+      setTimeout(() => {
+        const activeUndoStack = this.props.activeTextFileUndoStack;
+        const activeRedoStack = this.props.activeTextFileRedoStack;
+        this.props.undoManager.$undoStack = this.convertInPlace(
+          activeUndoStack
+        );
+        this.props.undoManager.$redoStack = this.convertInPlace(
+          activeRedoStack
+        );
+        setTimeout(() => {
+          this.props.visualizeTreeUndoFunction();
+        }, 10);
+        if (hotReloadFlag) {
+          this.props.updateHotReload(hotReloadFlag);
+          const textFIle = this.props.textFile;
+          this.props.executeHTML(textFIle);
+        }
+      }, 10);
     }, 10);
   };
 
   render() {
     return (
       <button
-        touch-action="auto"
+        touch-action='auto'
         style={(() => {
           const active =
             this.props.activeTextFileFileName === this.props.fileName;
@@ -136,7 +165,7 @@ export default class TextFileButton extends React.Component {
           if (this.props.fileName !== 'index.html') {
             return (
               <p
-                id="delete"
+                id='delete'
                 onMouseEnter={this.handleDeleteMouseEnter}
                 onMouseLeave={this.handleDeleteMouseLeave}
                 style={(() => {

@@ -1,6 +1,5 @@
 import React from 'react';
 import { inject, observer } from 'mobx-react';
-import { toJS } from 'mobx';
 
 @inject(({ state }) => ({
   activeTextFileFileName: state.activeTextFile.fileName,
